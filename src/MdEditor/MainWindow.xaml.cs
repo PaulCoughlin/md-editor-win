@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Markup;
 using MdEditor.Markdown;
 using Microsoft.Win32;
 
@@ -20,12 +21,81 @@ public partial class MainWindow : Window
     private string? _currentPath;
     private bool _isDirty;
     private bool _suppressDirty;
+    private readonly Settings _settings;
 
     public MainWindow()
     {
         InitializeComponent();
-        Editor.Document = new FlowDocument(new Paragraph());
-        UpdateTitle();
+        _settings = SettingsStore.Load();
+
+        // Start with a genuinely clean blank document. Routing through LoadDocument
+        // (under the suppress-dirty guard) prevents the initial assignment from
+        // marking the untouched document dirty — otherwise Open/close would wrongly
+        // prompt "Save changes?" on a blank file.
+        LoadDocument(new FlowDocument(new Paragraph()));
+        MarkClean();
+
+        ApplySettingsToEditor();
+        RestoreWindowBounds();
+    }
+
+    // ---- settings ----
+
+    /// <summary>Applies the current settings' font, size, and spellcheck to the editor.</summary>
+    private void ApplySettingsToEditor()
+    {
+        Editor.FontFamily = new System.Windows.Media.FontFamily(_settings.FontFamily);
+        Editor.FontSize = _settings.FontSize;
+
+        if (_settings.SpellcheckLanguage == "off")
+        {
+            Editor.SpellCheck.IsEnabled = false;
+        }
+        else
+        {
+            Editor.SpellCheck.IsEnabled = true;
+            // The spellcheck dictionary is chosen from the element's Language.
+            Editor.Language = XmlLanguage.GetLanguage(_settings.SpellcheckLanguage);
+        }
+    }
+
+    private void RestoreWindowBounds()
+    {
+        if (_settings.WindowWidth is not double w || _settings.WindowHeight is not double h)
+            return;
+
+        // Only restore a saved position if it lands on a visible screen.
+        if (_settings.WindowLeft is double left && _settings.WindowTop is double top
+            && left + w > SystemParameters.VirtualScreenLeft
+            && top + h > SystemParameters.VirtualScreenTop
+            && left < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth
+            && top < SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = left;
+            Top = top;
+        }
+        Width = w;
+        Height = h;
+    }
+
+    private void SaveWindowBounds()
+    {
+        // Persist the normal (non-maximised) bounds so restore is sensible.
+        var bounds = WindowState == WindowState.Normal
+            ? new Rect(Left, Top, Width, Height)
+            : RestoreBounds;
+        _settings.WindowLeft = bounds.Left;
+        _settings.WindowTop = bounds.Top;
+        _settings.WindowWidth = bounds.Width;
+        _settings.WindowHeight = bounds.Height;
+        SettingsStore.Save(_settings);
+    }
+
+    private void Preferences_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new PreferencesWindow(_settings, ApplySettingsToEditor) { Owner = this };
+        dialog.ShowDialog();
     }
 
     // ---- dirty state ----
@@ -70,7 +140,14 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        if (!ConfirmDiscard()) e.Cancel = true;
+        if (!ConfirmDiscard())
+        {
+            e.Cancel = true;
+        }
+        else
+        {
+            SaveWindowBounds();
+        }
         base.OnClosing(e);
     }
 

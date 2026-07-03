@@ -28,6 +28,8 @@
                 <MenuItem Header="_Save" Command="Save" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="Save _As…" Command="SaveAs" InputGestureText="Ctrl+Shift+S"/>
                 <Separator/>
+                <MenuItem Header="_Preferences…" Click="Preferences_Click"/>
+                <Separator/>
                 <MenuItem Header="E_xit" Click="Exit_Click"/>
             </MenuItem>
         </Menu>
