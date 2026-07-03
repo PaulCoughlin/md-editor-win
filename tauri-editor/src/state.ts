@@ -40,6 +40,12 @@ export class DocumentState {
   private updateTitle(): void {
     const title = `${this.dirty ? "* " : ""}${this.fileName()} — Markdown Editor`;
     getCurrentWindow().setTitle(title);
+
+    // The status bar shows the full path (or a placeholder when unsaved).
+    const pathEl = document.getElementById("status-path");
+    if (pathEl) {
+      pathEl.textContent = this.currentPath ?? "Unsaved document";
+    }
   }
 
   /** Load content without marking dirty (the initial blank doc, and after open/new). */

@@ -16,7 +16,7 @@
         "title": "Markdown Editor (Tauri)",
         "width": 1100,
         "height": 1100,
-        "center": true
+        "visible": false
       }
     ],
     "security": {

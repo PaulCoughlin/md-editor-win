@@ -16,10 +16,21 @@ async function bootstrap() {
   const root = document.getElementById("editor")!;
   const doc = new DocumentStateHolder();
 
-  const editor = createEditor(root, () => doc.state?.markDirtyFromEdit());
+  const editor = createEditor(root, () => {
+    doc.state?.markDirtyFromEdit();
+    updateWordCount();
+  });
   const state = new DocumentState(editor);
   doc.state = state;
   state.init();
+  updateWordCount();
+
+  function updateWordCount() {
+    const text = editor.getText().trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const el = document.getElementById("status-count");
+    if (el) el.textContent = `${words} word${words === 1 ? "" : "s"}`;
+  }
 
   // Settings: load, apply, wire the preferences dialog.
   let settings = await loadSettings();

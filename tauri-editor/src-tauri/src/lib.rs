@@ -42,6 +42,44 @@ fn open_dictionary(app: tauri::AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// Centers the window on the monitor containing the mouse cursor. Falls back to
+/// leaving the window where config placed it if the cursor's monitor can't be found.
+fn position_on_cursor_monitor(win: &tauri::WebviewWindow) {
+    let cursor = match win.cursor_position() {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+
+    // Find the monitor whose bounds contain the cursor.
+    let monitors = match win.available_monitors() {
+        Ok(m) => m,
+        Err(_) => return,
+    };
+    let target = monitors.into_iter().find(|m| {
+        let pos = m.position();
+        let size = m.size();
+        let cx = cursor.x as i32;
+        let cy = cursor.y as i32;
+        cx >= pos.x
+            && cx < pos.x + size.width as i32
+            && cy >= pos.y
+            && cy < pos.y + size.height as i32
+    });
+
+    let monitor = match target {
+        Some(m) => m,
+        None => return, // cursor not on a known monitor → leave as-is
+    };
+
+    if let Ok(win_size) = win.outer_size() {
+        let mpos = monitor.position();
+        let msize = monitor.size();
+        let x = mpos.x + (msize.width as i32 - win_size.width as i32) / 2;
+        let y = mpos.y + (msize.height as i32 - win_size.height as i32) / 2;
+        let _ = win.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -50,6 +88,14 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![read_file, write_file, open_dictionary])
         .setup(|app| {
+            // Open on whichever monitor the mouse cursor is currently on, centered.
+            // Done before the window is shown (it starts hidden in config) so there is
+            // no visible jump. No saved state — it just follows the cursor.
+            if let Some(win) = app.get_webview_window("main") {
+                position_on_cursor_monitor(&win);
+                let _ = win.show();
+            }
+
             // Native File menu. Each item emits an event the frontend handles, so the
             // menu drives the same code paths as toolbar/keyboard actions.
             let file_menu = SubmenuBuilder::new(app, "File")
