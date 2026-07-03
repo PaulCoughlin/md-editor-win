@@ -97,7 +97,18 @@ Boundaries match the WPF app: OS in Rust, document in TS, translation isolated.
 - Tables + row/column/header editing → TipTap `Table` extension (insert/delete row &
   column, toggle header) — upstream equivalent of our `TableOperations`.
 - Spellcheck (en-GB) → WebView native: `spellcheck="true"` + `lang="en-GB"`;
-  right-click spelling suggestions come from the OS/WebView for free.
+  right-click spelling suggestions come from the OS/WebView for free. **Custom words:
+  Windows keeps a per-user custom dictionary that WebView2 reads automatically — it is
+  external, hand-editable, and shared across all Windows apps.** The user's existing
+  additions live in the language-neutral file
+  `%APPDATA%\Microsoft\Spelling\neutral\default.dic` (words here are accepted in every
+  language). Format is UTF-16LE, one word per line. The app adds a right-click
+  **"Add to Dictionary"** that appends the word to that neutral file via a Rust command
+  (the WebView sandbox cannot write it directly), so new additions sit alongside the
+  user's existing ones. Effect: the word is un-flagged in this app and every other
+  Windows app, permanently — solving the "every file picks up the same errors" pain.
+  The native menu's own suggestions + session "Ignore" remain available; we add the
+  persistent "Add to Dictionary" on top.
 - Print → `window.print()` → native print dialog renders the document.
 - Preferences → persisted JSON in the Tauri app-config dir (same idea as
   `%APPDATA%\MdEditor\settings.json`). Font/size applied to the editor surface only.

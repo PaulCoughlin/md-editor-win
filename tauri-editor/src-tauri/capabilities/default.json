@@ -5,6 +5,26 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "core:window:allow-set-title",
+    "core:window:allow-close",
+    "opener:default",
+    "dialog:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [{ "path": "$APPCONFIG/**" }]
+    },
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [{ "path": "$APPCONFIG/**" }]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [{ "path": "$APPCONFIG/**" }]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "$APPCONFIG/**" }]
+    }
   ]
 }
