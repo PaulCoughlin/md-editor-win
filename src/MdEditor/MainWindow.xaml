@@ -17,6 +17,7 @@
         <CommandBinding Command="Open" Executed="Open_Executed"/>
         <CommandBinding Command="Save" Executed="Save_Executed"/>
         <CommandBinding Command="SaveAs" Executed="SaveAs_Executed"/>
+        <CommandBinding Command="Print" Executed="Print_Executed"/>
     </Window.CommandBindings>
 
     <DockPanel>
@@ -27,6 +28,8 @@
                 <Separator/>
                 <MenuItem Header="_Save" Command="Save" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="Save _As…" Command="SaveAs" InputGestureText="Ctrl+Shift+S"/>
+                <Separator/>
+                <MenuItem Header="_Print…" Command="Print" InputGestureText="Ctrl+P"/>
                 <Separator/>
                 <MenuItem Header="_Preferences…" Click="Preferences_Click"/>
                 <Separator/>

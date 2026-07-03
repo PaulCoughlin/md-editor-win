@@ -194,6 +194,26 @@ public partial class MainWindow : Window
 
     private void SaveAs_Executed(object sender, ExecutedRoutedEventArgs e) => SaveAs();
 
+    private void Print_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        var dialog = new System.Windows.Controls.PrintDialog();
+        if (dialog.ShowDialog() != true) return;
+
+        // Print a fresh copy of the document (round-tripped through markdown) so the
+        // live editor document is never reparented or resized by the print system.
+        var copy = MarkdownToFlowDocument.Convert(FlowDocumentToMarkdown.Serialize(Editor.Document));
+        IDocumentPaginatorSource paginator = copy;
+
+        // Fit the page to the printer's printable area with a modest margin.
+        copy.PageWidth = dialog.PrintableAreaWidth;
+        copy.PageHeight = dialog.PrintableAreaHeight;
+        copy.PagePadding = new Thickness(50);
+        copy.ColumnWidth = double.PositiveInfinity; // single column
+
+        string name = _currentPath is null ? "Untitled" : Path.GetFileName(_currentPath);
+        dialog.PrintDocument(paginator.DocumentPaginator, name);
+    }
+
     /// <summary>Saves to the current path, prompting for one if none is set.</summary>
     private bool Save()
     {
