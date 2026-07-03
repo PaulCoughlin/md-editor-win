@@ -21,8 +21,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        // Remembers window size/position across launches.
-        .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![read_file, write_file])
         .setup(|app| {
             // Native File menu. Each item emits an event the frontend handles, so the

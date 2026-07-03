@@ -11,12 +11,18 @@ export interface Settings {
   fontSize: number;
   /** "en-GB" | "en-US" | "off" */
   spellcheckLanguage: string;
+  /** Max width of the writing page, in px. */
+  editorWidth: number;
+  /** Horizontal padding inside the page, in px. */
+  editorMargin: number;
 }
 
 const DEFAULTS: Settings = {
   fontFamily: "Segoe UI",
   fontSize: 15,
   spellcheckLanguage: "en-GB",
+  editorWidth: 820,
+  editorMargin: 56,
 };
 
 const FILE = "settings.json";
@@ -53,6 +59,10 @@ export async function saveSettings(s: Settings): Promise<void> {
 export function applySettings(editorRoot: HTMLElement, s: Settings): void {
   editorRoot.style.fontFamily = s.fontFamily;
   editorRoot.style.fontSize = `${s.fontSize}px`;
+
+  // Width and horizontal margin are driven by CSS variables so they can change live.
+  document.documentElement.style.setProperty("--editor-width", `${s.editorWidth}px`);
+  document.documentElement.style.setProperty("--editor-margin", `${s.editorMargin}px`);
 
   const editable = editorRoot.querySelector(".ProseMirror") as HTMLElement | null;
   const target = editable ?? editorRoot;

@@ -100,6 +100,8 @@ function setupPreferences(
   const fontSel = document.getElementById("pref-font") as HTMLSelectElement;
   const sizeInput = document.getElementById("pref-size") as HTMLInputElement;
   const spellSel = document.getElementById("pref-spell") as HTMLSelectElement;
+  const widthInput = document.getElementById("pref-width") as HTMLInputElement;
+  const marginInput = document.getElementById("pref-margin") as HTMLInputElement;
 
   // A small, safe font list (system fonts are not enumerable from the WebView).
   const fonts = ["Segoe UI", "Calibri", "Arial", "Georgia", "Times New Roman", "Consolas", "Verdana"];
@@ -109,12 +111,16 @@ function setupPreferences(
   fontSel.value = s.fontFamily;
   sizeInput.value = String(s.fontSize);
   spellSel.value = s.spellcheckLanguage;
+  widthInput.value = String(s.editorWidth);
+  marginInput.value = String(s.editorMargin);
 
   const apply = () => {
     const next: Settings = {
       fontFamily: fontSel.value,
       fontSize: Number(sizeInput.value) || 15,
       spellcheckLanguage: spellSel.value,
+      editorWidth: Number(widthInput.value) || 820,
+      editorMargin: Number(marginInput.value) || 56,
     };
     set(next);
     applySettings(root, next);
@@ -124,6 +130,8 @@ function setupPreferences(
   fontSel.addEventListener("change", apply);
   sizeInput.addEventListener("change", apply);
   spellSel.addEventListener("change", apply);
+  widthInput.addEventListener("change", apply);
+  marginInput.addEventListener("change", apply);
   dialog.addEventListener("close", apply);
 }
 
