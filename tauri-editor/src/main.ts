@@ -1,5 +1,6 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { createEditor } from "./editor";
 import { DocumentState } from "./state";
 import { commands } from "./commands";
@@ -79,6 +80,7 @@ function setupToolbar(editor: ReturnType<typeof createEditor>, _state: DocumentS
       case "rule": commands.rule(editor); break;
       case "link": commands.link(editor); break;
       case "table": insertTablePrompt(editor); break;
+      case "dictionary": invoke("open_dictionary").catch(() => {}); break;
     }
   });
 }

@@ -15,13 +15,40 @@ fn write_file(path: String, contents: String) -> Result<(), String> {
     fs::write(&path, contents).map_err(|e| e.to_string())
 }
 
+/// Opens the Windows language-neutral custom dictionary in the system default editor
+/// so the user can add/remove custom words by hand. Creates the file if it does not
+/// exist yet (Windows only creates it on first "add to dictionary" from any app).
+#[tauri::command]
+fn open_dictionary(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let appdata = std::env::var("APPDATA").map_err(|_| "APPDATA not set".to_string())?;
+    let path = std::path::PathBuf::from(appdata)
+        .join("Microsoft")
+        .join("Spelling")
+        .join("neutral")
+        .join("default.dic");
+
+    if !path.exists() {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        // UTF-16LE BOM so the editor and Windows treat the new file correctly.
+        fs::write(&path, [0xFF, 0xFE]).map_err(|e| e.to_string())?;
+    }
+
+    app.opener()
+        .open_path(path.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![read_file, write_file])
+        .invoke_handler(tauri::generate_handler![read_file, write_file, open_dictionary])
         .setup(|app| {
             // Native File menu. Each item emits an event the frontend handles, so the
             // menu drives the same code paths as toolbar/keyboard actions.

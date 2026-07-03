@@ -50,6 +50,8 @@ body {
 }
 #toolbar button:hover { background: #e6e6e6; border-color: #d5d5d5; }
 #toolbar .sep { width: 1px; height: 18px; background: #d5d5d5; margin: 0 4px; }
+#toolbar .spacer { flex: 1 1 auto; }
+#toolbar button.ghost { color: #666; font-size: 12px; }
 
 /* Editor surface — the rendered document */
 #editor {
@@ -58,8 +60,8 @@ body {
   background: #f7f7f7; /* very light grey gutter outside the page */
 }
 .ProseMirror {
-  max-width: var(--editor-width, 820px);
-  margin: 0 auto;
+  max-width: var(--editor-width, 960px);
+  margin: 20px auto 0; /* 20px grey gap above the page, like a web page */
   padding: 40px var(--editor-margin, 56px) 120px;
   min-height: 100%;
   background: #ffffff; /* the writing "page" stays white */

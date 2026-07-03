@@ -21,7 +21,7 @@ const DEFAULTS: Settings = {
   fontFamily: "Segoe UI",
   fontSize: 15,
   spellcheckLanguage: "en-GB",
-  editorWidth: 820,
+  editorWidth: 960,
   editorMargin: 56,
 };
 

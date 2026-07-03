@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "Markdown Editor (Tauri)",
-        "width": 960,
-        "height": 720,
+        "width": 1100,
+        "height": 1100,
         "center": true
       }
     ],
