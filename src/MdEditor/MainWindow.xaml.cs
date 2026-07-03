@@ -1,0 +1,290 @@
+using System.ComponentModel;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
+using MdEditor.Markdown;
+using Microsoft.Win32;
+
+namespace MdEditor;
+
+/// <summary>
+/// The app shell: menu, toolbar, and the RichTextBox editing surface, plus file I/O,
+/// dirty-state tracking, and the formatting commands. The two markdown translations
+/// live in <see cref="MarkdownToFlowDocument"/> (open) and
+/// <see cref="FlowDocumentToMarkdown"/> (save).
+/// </summary>
+public partial class MainWindow : Window
+{
+    private string? _currentPath;
+    private bool _isDirty;
+    private bool _suppressDirty;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        Editor.Document = new FlowDocument(new Paragraph());
+        UpdateTitle();
+    }
+
+    // ---- dirty state ----
+
+    private void Editor_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressDirty) return;
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    private void MarkClean()
+    {
+        _isDirty = false;
+        UpdateTitle();
+    }
+
+    private void UpdateTitle()
+    {
+        string name = _currentPath is null ? "Untitled" : Path.GetFileName(_currentPath);
+        Title = (_isDirty ? "* " : "") + name + " — Markdown Editor";
+        StatusText.Text = _currentPath ?? "Unsaved document";
+    }
+
+    /// <summary>Returns true if it is safe to discard the current document.</summary>
+    private bool ConfirmDiscard()
+    {
+        if (!_isDirty) return true;
+        var result = MessageBox.Show(
+            "Save changes to the current document?",
+            "Markdown Editor",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+
+        return result switch
+        {
+            MessageBoxResult.Yes => Save(),
+            MessageBoxResult.No => true,
+            _ => false,
+        };
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!ConfirmDiscard()) e.Cancel = true;
+        base.OnClosing(e);
+    }
+
+    // ---- file commands ----
+
+    private void New_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (!ConfirmDiscard()) return;
+        LoadDocument(new FlowDocument(new Paragraph()));
+        _currentPath = null;
+        MarkClean();
+    }
+
+    private void Open_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (!ConfirmDiscard()) return;
+        var dialog = new OpenFileDialog
+        {
+            Filter = "Markdown files (*.md)|*.md|All files (*.*)|*.*",
+            DefaultExt = ".md",
+        };
+        if (dialog.ShowDialog(this) != true) return;
+
+        try
+        {
+            string markdown = File.ReadAllText(dialog.FileName);
+            LoadDocument(MarkdownToFlowDocument.Convert(markdown));
+            _currentPath = dialog.FileName;
+            MarkClean();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Could not open file:\n" + ex.Message, "Markdown Editor",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void Save_Executed(object sender, ExecutedRoutedEventArgs e) => Save();
+
+    private void SaveAs_Executed(object sender, ExecutedRoutedEventArgs e) => SaveAs();
+
+    /// <summary>Saves to the current path, prompting for one if none is set.</summary>
+    private bool Save()
+    {
+        if (_currentPath is null) return SaveAs();
+        return WriteToDisk(_currentPath);
+    }
+
+    private bool SaveAs()
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = "Markdown files (*.md)|*.md|All files (*.*)|*.*",
+            DefaultExt = ".md",
+            FileName = _currentPath is null ? "Untitled.md" : Path.GetFileName(_currentPath),
+        };
+        if (dialog.ShowDialog(this) != true) return false;
+        if (WriteToDisk(dialog.FileName))
+        {
+            _currentPath = dialog.FileName;
+            UpdateTitle();
+            return true;
+        }
+        return false;
+    }
+
+    private bool WriteToDisk(string path)
+    {
+        try
+        {
+            string markdown = FlowDocumentToMarkdown.Serialize(Editor.Document);
+            File.WriteAllText(path, markdown);
+            MarkClean();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Could not save file:\n" + ex.Message, "Markdown Editor",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+    }
+
+    private void LoadDocument(FlowDocument doc)
+    {
+        _suppressDirty = true;
+        Editor.Document = doc;
+        _suppressDirty = false;
+    }
+
+    private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+
+    // ---- keyboard shortcuts ----
+
+    private void Editor_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.Control) return;
+
+        int? level = e.Key switch
+        {
+            Key.D0 or Key.NumPad0 => 0,
+            Key.D1 or Key.NumPad1 => 1,
+            Key.D2 or Key.NumPad2 => 2,
+            Key.D3 or Key.NumPad3 => 3,
+            Key.D4 or Key.NumPad4 => 4,
+            Key.D5 or Key.NumPad5 => 5,
+            Key.D6 or Key.NumPad6 => 6,
+            _ => null,
+        };
+        if (level is int l)
+        {
+            SetBlockHeading(l);
+            e.Handled = true;
+        }
+    }
+
+    // ---- formatting commands ----
+
+    /// <summary>Sets the block containing the caret to a heading level (1..6) or body (0).</summary>
+    private void SetBlockHeading(int level)
+    {
+        if (Editor.CaretPosition.Paragraph is not Paragraph p) return;
+        if (level == 0)
+        {
+            p.Tag = null;
+            p.FontSize = Editor.FontSize;
+            p.FontWeight = FontWeights.Normal;
+        }
+        else
+        {
+            double[] sizes = { 28, 24, 20, 17, 15, 14 };
+            p.Tag = "h" + level;
+            p.FontSize = sizes[level - 1];
+            p.FontWeight = FontWeights.Bold;
+        }
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    private void H1_Click(object sender, RoutedEventArgs e) => SetBlockHeading(1);
+    private void H2_Click(object sender, RoutedEventArgs e) => SetBlockHeading(2);
+    private void H3_Click(object sender, RoutedEventArgs e) => SetBlockHeading(3);
+    private void Body_Click(object sender, RoutedEventArgs e) => SetBlockHeading(0);
+
+    private void InlineCode_Click(object sender, RoutedEventArgs e)
+    {
+        var selection = Editor.Selection;
+        if (selection.IsEmpty) return;
+        selection.ApplyPropertyValue(TextElement.FontFamilyProperty, new System.Windows.Media.FontFamily("Consolas"));
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    private void BulletList_Click(object sender, RoutedEventArgs e) => ToggleList(TextMarkerStyle.Disc);
+    private void NumberList_Click(object sender, RoutedEventArgs e) => ToggleList(TextMarkerStyle.Decimal);
+
+    private void ToggleList(TextMarkerStyle style)
+    {
+        // EditingCommands handles the list creation; then set the marker style.
+        EditingCommands.ToggleBullets.Execute(null, Editor);
+        if (Editor.CaretPosition.Paragraph?.Parent is ListItem { Parent: List list })
+            list.MarkerStyle = style;
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    private void Quote_Click(object sender, RoutedEventArgs e)
+    {
+        if (Editor.CaretPosition.Paragraph is not Paragraph p) return;
+        // Wrap the current paragraph's block in a quote Section.
+        var section = new Section { Tag = "quote" };
+        var block = p as Block;
+        var parent = block.SiblingBlocks;
+        if (parent is null) return;
+        parent.InsertAfter(block, section);
+        parent.Remove(block);
+        section.Blocks.Add(block);
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    private void Rule_Click(object sender, RoutedEventArgs e)
+    {
+        var rule = new Paragraph { Tag = "hr" };
+        rule.BorderBrush = System.Windows.Media.Brushes.LightGray;
+        rule.BorderThickness = new Thickness(0, 1, 0, 0);
+        rule.Margin = new Thickness(0, 8, 0, 8);
+
+        if (Editor.CaretPosition.Paragraph is Paragraph p && p.SiblingBlocks is not null)
+            p.SiblingBlocks.InsertAfter(p, rule);
+        else
+            Editor.Document.Blocks.Add(rule);
+
+        Editor.Document.Blocks.InsertAfter(rule, new Paragraph());
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    private void Link_Click(object sender, RoutedEventArgs e)
+    {
+        var selection = Editor.Selection;
+        if (selection.IsEmpty)
+        {
+            MessageBox.Show(this, "Select the text to turn into a link first.", "Markdown Editor",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        string text = selection.Text;
+        var link = new Hyperlink(selection.Start, selection.End)
+        {
+            NavigateUri = new Uri("https://example.com"),
+        };
+        _isDirty = true;
+        UpdateTitle();
+    }
+}
