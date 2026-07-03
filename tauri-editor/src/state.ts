@@ -38,7 +38,7 @@ export class DocumentState {
   }
 
   private updateTitle(): void {
-    const title = `${this.dirty ? "* " : ""}${this.fileName()} — Markdown Editor`;
+    const title = `${this.dirty ? "* " : ""}${this.fileName()} — MannyMarker`;
     getCurrentWindow().setTitle(title);
 
     // The status bar shows the full path (or a placeholder when unsaved).
@@ -46,6 +46,20 @@ export class DocumentState {
     if (pathEl) {
       pathEl.textContent = this.currentPath ?? "Unsaved document";
     }
+  }
+
+  /** Shows a "last saved" time in the status bar, or clears it (ms since epoch, or null). */
+  private setSaved(epochMs: number | null): void {
+    const el = document.getElementById("status-saved");
+    if (!el) return;
+    if (epochMs === null) {
+      el.textContent = "";
+      return;
+    }
+    const d = new Date(epochMs);
+    const date = d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+    const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    el.textContent = `Saved ${date} ${time}`;
   }
 
   /** Load content without marking dirty (the initial blank doc, and after open/new). */
@@ -74,6 +88,7 @@ export class DocumentState {
     if (!(await this.confirmDiscard())) return;
     this.currentPath = null;
     this.loadClean("");
+    this.setSaved(null);
   }
 
   async open(): Promise<void> {
@@ -84,6 +99,8 @@ export class DocumentState {
       const text = await invoke<string>("read_file", { path: selected });
       this.currentPath = selected;
       this.loadClean(text);
+      const mtime = await invoke<number | null>("file_mtime", { path: selected });
+      this.setSaved(mtime ?? null);
     } catch (e) {
       await ask(`Could not open file:\n${e}`, { title: "Markdown Editor", kind: "error" });
     }
@@ -112,6 +129,7 @@ export class DocumentState {
     try {
       await invoke("write_file", { path, contents: toMarkdown(this.editor) });
       this.markClean();
+      this.setSaved(Date.now());
       return true;
     } catch (e) {
       await ask(`Could not save file:\n${e}`, { title: "Markdown Editor", kind: "error" });

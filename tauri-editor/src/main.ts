@@ -39,6 +39,7 @@ async function bootstrap() {
   setupToolbar(editor, state);
   setupPreferences(root, () => settings, (s) => (settings = s));
 
+
   // Native menu events from Rust.
   await listen<string>("menu", async (e) => {
     switch (e.payload) {

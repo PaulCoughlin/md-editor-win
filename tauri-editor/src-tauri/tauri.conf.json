@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-editor",
-  "version": "0.1.0",
-  "identifier": "com.paul.tauri-editor",
+  "productName": "MannyMarker",
+  "version": "0.1.1",
+  "identifier": "com.mannymcguire.mannymarker",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,8 +13,8 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Markdown Editor (Tauri)",
-        "width": 1100,
+        "title": "MannyMarker",
+        "width": 1300,
         "height": 1100,
         "visible": false
       }

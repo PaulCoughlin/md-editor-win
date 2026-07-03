@@ -66,8 +66,19 @@ body {
   color: #666;
   user-select: none;
 }
-#status-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#status-count { flex: 0 0 auto; padding-left: 12px; }
+#status-path { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#status-saved { flex: 0 0 auto; padding: 0 16px; white-space: nowrap; }
+#status-count { flex: 0 0 auto; padding-left: 12px; white-space: nowrap; }
+#status-brand {
+  flex: 0 0 auto;
+  padding-left: 16px;
+  margin-left: 12px;
+  border-left: 1px solid #ddd;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #999;
+  white-space: nowrap;
+}
 
 /* Editor surface — the rendered document */
 #editor {
@@ -76,7 +87,7 @@ body {
   background: #f7f7f7; /* very light grey gutter outside the page */
 }
 .ProseMirror {
-  max-width: var(--editor-width, 960px);
+  max-width: var(--editor-width, 990px);
   margin: 20px auto 0; /* 20px grey gap above the page, like a web page */
   padding: 40px var(--editor-margin, 56px) 120px;
   min-height: 100%;
@@ -180,6 +191,7 @@ body {
   .ProseMirror { background: #1e1e1e; }
   #toolbar { background: #262626; border-color: #333; }
   #statusbar { background: #262626; border-color: #333; color: #999; }
+  #status-brand { border-left-color: #444; color: #777; }
   #toolbar button:hover { background: #333; border-color: #444; }
   #toolbar .sep { background: #444; }
   .ProseMirror code, .ProseMirror pre { background: #2a2a2a; }

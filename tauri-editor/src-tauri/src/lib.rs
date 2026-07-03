@@ -15,6 +15,16 @@ fn write_file(path: String, contents: String) -> Result<(), String> {
     fs::write(&path, contents).map_err(|e| e.to_string())
 }
 
+/// Returns a file's last-modified time as milliseconds since the Unix epoch, so the
+/// frontend can show a "last saved" timestamp on open. None if unavailable.
+#[tauri::command]
+fn file_mtime(path: String) -> Option<u64> {
+    let meta = fs::metadata(&path).ok()?;
+    let modified = meta.modified().ok()?;
+    let dur = modified.duration_since(std::time::UNIX_EPOCH).ok()?;
+    Some(dur.as_millis() as u64)
+}
+
 /// Opens the Windows language-neutral custom dictionary in the system default editor
 /// so the user can add/remove custom words by hand. Creates the file if it does not
 /// exist yet (Windows only creates it on first "add to dictionary" from any app).
@@ -42,15 +52,25 @@ fn open_dictionary(app: tauri::AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-/// Centers the window on the monitor containing the mouse cursor. Falls back to
-/// leaving the window where config placed it if the cursor's monitor can't be found.
+/// The window's intended size, in logical (scale-independent) pixels. Must match the
+/// width/height in tauri.conf.json.
+const LOGICAL_W: f64 = 1300.0;
+const LOGICAL_H: f64 = 1100.0;
+
+/// Centers the window on the monitor containing the mouse cursor, at the correct size
+/// for THAT monitor's DPI scale.
+///
+/// The window is created in the launching process's DPI context, so its physical size
+/// reflects the launcher's monitor scale — not the monitor it ends up on. If those
+/// scales differ (e.g. a 175% laptop launching onto a 100% external display) the
+/// window would be the wrong physical size. So we re-assert the intended *logical*
+/// size for the target monitor and center using that monitor's own scale factor.
 fn position_on_cursor_monitor(win: &tauri::WebviewWindow) {
     let cursor = match win.cursor_position() {
         Ok(p) => p,
         Err(_) => return,
     };
 
-    // Find the monitor whose bounds contain the cursor.
     let monitors = match win.available_monitors() {
         Ok(m) => m,
         Err(_) => return,
@@ -71,13 +91,19 @@ fn position_on_cursor_monitor(win: &tauri::WebviewWindow) {
         None => return, // cursor not on a known monitor → leave as-is
     };
 
-    if let Ok(win_size) = win.outer_size() {
-        let mpos = monitor.position();
-        let msize = monitor.size();
-        let x = mpos.x + (msize.width as i32 - win_size.width as i32) / 2;
-        let y = mpos.y + (msize.height as i32 - win_size.height as i32) / 2;
-        let _ = win.set_position(tauri::PhysicalPosition::new(x, y));
-    }
+    // Re-assert the intended logical size so the window is correctly sized for the
+    // target monitor's scale (this is the fix for the wrong-size-on-other-monitor bug).
+    let _ = win.set_size(tauri::LogicalSize::new(LOGICAL_W, LOGICAL_H));
+
+    // Center using the target monitor's scale to get the physical window size.
+    let scale = monitor.scale_factor();
+    let win_w_phys = (LOGICAL_W * scale) as i32;
+    let win_h_phys = (LOGICAL_H * scale) as i32;
+    let mpos = monitor.position();
+    let msize = monitor.size();
+    let x = mpos.x + (msize.width as i32 - win_w_phys) / 2;
+    let y = mpos.y + (msize.height as i32 - win_h_phys) / 2;
+    let _ = win.set_position(tauri::PhysicalPosition::new(x, y));
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -86,7 +112,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![read_file, write_file, open_dictionary])
+        .invoke_handler(tauri::generate_handler![
+            read_file,
+            write_file,
+            file_mtime,
+            open_dictionary
+        ])
         .setup(|app| {
             // Open on whichever monitor the mouse cursor is currently on, centered.
             // Done before the window is shown (it starts hidden in config) so there is

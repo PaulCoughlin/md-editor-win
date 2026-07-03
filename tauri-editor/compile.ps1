@@ -1,4 +1,4 @@
-# Recompile the Tauri markdown editor after editing sources or config.
+# Recompile MannyMarker (the native markdown editor) after editing sources or config.
 #
 # Usage:  right-click -> Run with PowerShell,  or  from a terminal:  ./compile.ps1
 #
@@ -15,13 +15,13 @@ $cargoBin = Join-Path $env:USERPROFILE ".cargo\bin"
 if (Test-Path $cargoBin) { $env:PATH = "$cargoBin;$env:PATH" }
 
 # A running instance locks the .exe and makes the installer step fail - close it.
-Get-Process tauri-editor -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process MannyMarker -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 300
 
 Write-Host "Building release... (first build after a clean is slow; later ones are quick)" -ForegroundColor Cyan
 npm run tauri build
 
-$exe = Join-Path $PSScriptRoot "src-tauri\target\release\tauri-editor.exe"
+$exe = Join-Path $PSScriptRoot "src-tauri\target\release\MannyMarker.exe"
 if (Test-Path $exe) {
     Write-Host "`nBuilt: $exe" -ForegroundColor Green
     $launch = Read-Host "Launch it now? (y/n)"
