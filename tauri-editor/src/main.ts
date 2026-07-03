@@ -39,10 +39,19 @@ async function bootstrap() {
     }
   });
 
-  // Save-before-close.
+  // Save-before-close. The close-requested handler must decide synchronously, so we
+  // always prevent the default close, run the (async) discard check, then destroy the
+  // window ourselves if it is safe. A plain `async` handler that awaits before calling
+  // preventDefault() races the event and can leave the window unable to close.
   const win = getCurrentWindow();
+  let closing = false;
   await win.onCloseRequested(async (event) => {
-    if (!(await state.canClose())) event.preventDefault();
+    if (closing) return; // our own destroy() re-fires this; let it through
+    event.preventDefault();
+    if (await state.canClose()) {
+      closing = true;
+      await win.destroy();
+    }
   });
 }
 

@@ -2,10 +2,28 @@
   font-family: "Segoe UI", system-ui, sans-serif;
   color: #1a1a1a;
   background: #ffffff;
+  /* Native-feeling text rendering + no web-style text selection on chrome. */
+  -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { display: flex; flex-direction: column; height: 100vh; }
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; /* only the editor pane scrolls, not the whole window */
+}
+
+/* Native-looking thin scrollbars (WebView2 supports these). */
+#editor { scrollbar-width: thin; scrollbar-color: #c1c1c1 transparent; }
+#editor::-webkit-scrollbar { width: 12px; }
+#editor::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 8px;
+}
+#editor::-webkit-scrollbar-thumb:hover { background: #a8a8a8; background-clip: content-box; }
 
 /* Toolbar */
 #toolbar {
@@ -110,6 +128,27 @@ body { display: flex; flex-direction: column; height: 100vh; }
 .prefs-form label { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .prefs-form select, .prefs-form input { font: inherit; padding: 3px 6px; }
 .prefs-form menu { margin: 0; padding: 0; display: flex; justify-content: flex-end; }
+
+/* Print: only the document content, no toolbar/scrollbars/chrome. */
+@media print {
+  #toolbar,
+  #ctxmenu,
+  #prefs { display: none !important; }
+
+  html, body { height: auto; overflow: visible; display: block; }
+  #editor { overflow: visible; height: auto; }
+  .ProseMirror {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    color: #000;
+  }
+  /* Avoid awkward breaks inside these blocks. */
+  .ProseMirror pre,
+  .ProseMirror blockquote,
+  .ProseMirror table,
+  .ProseMirror img { break-inside: avoid; }
+}
 
 @media (prefers-color-scheme: dark) {
   :root { color: #eaeaea; background: #1e1e1e; }
