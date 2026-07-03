@@ -403,10 +403,77 @@ public partial class MainWindow : Window
         return (table, rowIndex, colIndex);
     }
 
-    private void ContextMenu_Opened(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Builds the editor's right-click menu on demand so it can combine WPF's
+    /// spelling suggestions and clipboard commands with the table operations. A
+    /// static ContextMenu in XAML would suppress the built-in spellcheck menu, so
+    /// the menu is constructed fresh each time here.
+    /// </summary>
+    private void Editor_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        // The Table submenu is only meaningful inside a table.
-        TableMenu.IsEnabled = CaretTableLocation() is not null;
+        var menu = new ContextMenu();
+
+        AddSpellingSuggestions(menu);
+        AddClipboardCommands(menu);
+        AddTableCommands(menu);
+
+        Editor.ContextMenu = menu;
+    }
+
+    private void AddSpellingSuggestions(ContextMenu menu)
+    {
+        SpellingError? error = Editor.GetSpellingError(Editor.CaretPosition);
+        if (error is null) return;
+
+        bool any = false;
+        foreach (string suggestion in error.Suggestions)
+        {
+            any = true;
+            var item = new MenuItem { Header = suggestion, FontWeight = FontWeights.Bold };
+            item.Click += (_, _) => error.Correct(suggestion);
+            menu.Items.Add(item);
+        }
+        if (!any)
+            menu.Items.Add(new MenuItem { Header = "(No spelling suggestions)", IsEnabled = false });
+
+        var ignore = new MenuItem { Header = "Ignore All" };
+        ignore.Click += (_, _) => error.IgnoreAll();
+        menu.Items.Add(ignore);
+        menu.Items.Add(new Separator());
+    }
+
+    private void AddClipboardCommands(ContextMenu menu)
+    {
+        menu.Items.Add(new MenuItem { Header = "Cut", Command = ApplicationCommands.Cut, CommandTarget = Editor });
+        menu.Items.Add(new MenuItem { Header = "Copy", Command = ApplicationCommands.Copy, CommandTarget = Editor });
+        menu.Items.Add(new MenuItem { Header = "Paste", Command = ApplicationCommands.Paste, CommandTarget = Editor });
+    }
+
+    private void AddTableCommands(ContextMenu menu)
+    {
+        if (CaretTableLocation() is null) return;
+
+        menu.Items.Add(new Separator());
+        var table = new MenuItem { Header = "Table" };
+
+        void Add(string header, RoutedEventHandler handler)
+        {
+            var item = new MenuItem { Header = header };
+            item.Click += handler;
+            table.Items.Add(item);
+        }
+
+        Add("Insert Row Above", InsertRowAbove_Click);
+        Add("Insert Row Below", InsertRowBelow_Click);
+        Add("Delete Row", DeleteRow_Click);
+        table.Items.Add(new Separator());
+        Add("Insert Column Left", InsertColumnLeft_Click);
+        Add("Insert Column Right", InsertColumnRight_Click);
+        Add("Delete Column", DeleteColumn_Click);
+        table.Items.Add(new Separator());
+        Add("Toggle Header Row", ToggleHeader_Click);
+
+        menu.Items.Add(table);
     }
 
     private void WithTable(Action<Table, int, int> op)
