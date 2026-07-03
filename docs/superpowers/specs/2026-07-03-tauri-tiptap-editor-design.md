@@ -17,7 +17,30 @@ launch). This targets the smooth/fast native niche.
 - Native `.md` on disk. Font is a display preference only, never written to the file.
 - Preferences (font family, size, spellcheck language), window bounds, print.
 - **Smooth and fast** — this is the acceptance criterion, judged against the WPF app
-  and eyeballed against EditPlus.
+  and eyeballed against EditPlus. **All goals are UI/UX; functionality is already
+  solved by the WPF app.** The three concrete criteria are:
+  1. **Fast load** — cold-start to editable window (high confidence of beating WPF).
+  2. **Responsiveness** — no typing/scroll lag, especially on large docs (high conf.).
+  3. **Smooth window drag/move/resize** — the specific thing that feels bad in WPF
+     (medium confidence: window frame is OS/WebView-drawn, generally smoother than
+     WPF but not guaranteed to match a hand-tuned Win32 app like EditPlus).
+
+## Build sequencing — de-risk the window feel first
+
+Criterion 3 (smooth drag/resize) is the make-or-break and the least certain, and it
+depends on the *window frame* (OS + WebView2), not the editor inside. So **phase 0 is
+a minimal empty Tauri window** the user physically drags/moves/resizes against WPF and
+EditPlus to judge the feel BEFORE investing in the full editor. If the shell feel
+isn't there, we learn it in an hour; if it is, the editor is built on a validated
+foundation.
+
+**Phase 0 result (2026-07-03): PASSED.** Empty Tauri shell built (8.6 MB binary).
+Measured: cold launch ~2.0s (one-time WebView2 init), warm launch ~0.55s (~3× faster
+than WPF's ~1.5s). User tested drag/move/resize physically vs WPF + EditPlus: "much
+more responsive — like I'd expect. good enough for sure." Sub-second warm launch
+confirmed. Proceeding to build the full editor on this shell. (Note: the earlier
+"cold load beats WPF" prediction was wrong — corrected by measurement; the practical
+win is the warm-launch path, which the user will almost always hit.)
 
 ## Non-goals (first version)
 
