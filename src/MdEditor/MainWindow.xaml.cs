@@ -364,4 +364,87 @@ public partial class MainWindow : Window
         _isDirty = true;
         UpdateTitle();
     }
+
+    // ---- table commands ----
+
+    private void InsertTable_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new InsertTableWindow { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+
+        var table = TableOperations.Build(dialog.Rows, dialog.Columns);
+
+        // Insert after the caret's block, then leave an empty paragraph after the
+        // table so the caret has somewhere to go below it.
+        if (Editor.CaretPosition.Paragraph is Paragraph p && p.SiblingBlocks is not null)
+            p.SiblingBlocks.InsertAfter(p, table);
+        else
+            Editor.Document.Blocks.Add(table);
+        Editor.Document.Blocks.InsertAfter(table, new Paragraph());
+
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    /// <summary>Finds the table cell/row/column the caret sits in, or null if not in a table.</summary>
+    private (Table table, int row, int col)? CaretTableLocation()
+    {
+        DependencyObject? node = Editor.CaretPosition.Paragraph;
+        while (node is not null and not TableCell)
+            node = node is FrameworkContentElement fce ? fce.Parent : null;
+
+        if (node is not TableCell cell) return null;
+        if (cell.Parent is not TableRow row) return null;
+        if (row.Parent is not TableRowGroup group) return null;
+        if (group.Parent is not Table table) return null;
+
+        int rowIndex = group.Rows.IndexOf(row);
+        int colIndex = row.Cells.IndexOf(cell);
+        return (table, rowIndex, colIndex);
+    }
+
+    private void ContextMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        // The Table submenu is only meaningful inside a table.
+        TableMenu.IsEnabled = CaretTableLocation() is not null;
+    }
+
+    private void WithTable(Action<Table, int, int> op)
+    {
+        if (CaretTableLocation() is not (Table t, int r, int c)) return;
+        op(t, r, c);
+        _isDirty = true;
+        UpdateTitle();
+    }
+
+    private void InsertRowAbove_Click(object sender, RoutedEventArgs e) =>
+        WithTable((t, r, c) => TableOperations.InsertRow(t, r));
+
+    private void InsertRowBelow_Click(object sender, RoutedEventArgs e) =>
+        WithTable((t, r, c) => TableOperations.InsertRow(t, r + 1));
+
+    private void DeleteRow_Click(object sender, RoutedEventArgs e) =>
+        WithTable((t, r, c) =>
+        {
+            if (!TableOperations.DeleteRow(t, r))
+                MessageBox.Show(this, "A table must keep at least one row.", "Markdown Editor",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+        });
+
+    private void InsertColumnLeft_Click(object sender, RoutedEventArgs e) =>
+        WithTable((t, r, c) => TableOperations.InsertColumn(t, c));
+
+    private void InsertColumnRight_Click(object sender, RoutedEventArgs e) =>
+        WithTable((t, r, c) => TableOperations.InsertColumn(t, c + 1));
+
+    private void DeleteColumn_Click(object sender, RoutedEventArgs e) =>
+        WithTable((t, r, c) =>
+        {
+            if (!TableOperations.DeleteColumn(t, c))
+                MessageBox.Show(this, "A table must keep at least one column.", "Markdown Editor",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+        });
+
+    private void ToggleHeader_Click(object sender, RoutedEventArgs e) =>
+        WithTable((t, r, c) => TableOperations.ToggleHeader(t));
 }

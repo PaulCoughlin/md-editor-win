@@ -54,6 +54,8 @@
             <Button Content="&quot; Quote" ToolTip="Blockquote" Click="Quote_Click"/>
             <Button Content="― Rule" ToolTip="Horizontal rule" Click="Rule_Click"/>
             <Button Content="Link" ToolTip="Insert link" Click="Link_Click"/>
+            <Separator/>
+            <Button Content="Table" ToolTip="Insert table" Click="InsertTable_Click"/>
         </ToolBar>
 
         <StatusBar DockPanel.Dock="Bottom">
@@ -70,6 +72,22 @@
                      FontFamily="Segoe UI"
                      FontSize="15"
                      TextChanged="Editor_TextChanged"
-                     PreviewKeyDown="Editor_PreviewKeyDown"/>
+                     PreviewKeyDown="Editor_PreviewKeyDown">
+            <RichTextBox.ContextMenu>
+                <ContextMenu x:Name="EditorContextMenu" Opened="ContextMenu_Opened">
+                    <MenuItem x:Name="TableMenu" Header="Table">
+                        <MenuItem Header="Insert Row Above" Click="InsertRowAbove_Click"/>
+                        <MenuItem Header="Insert Row Below" Click="InsertRowBelow_Click"/>
+                        <MenuItem Header="Delete Row" Click="DeleteRow_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Insert Column Left" Click="InsertColumnLeft_Click"/>
+                        <MenuItem Header="Insert Column Right" Click="InsertColumnRight_Click"/>
+                        <MenuItem Header="Delete Column" Click="DeleteColumn_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Toggle Header Row" Click="ToggleHeader_Click"/>
+                    </MenuItem>
+                </ContextMenu>
+            </RichTextBox.ContextMenu>
+        </RichTextBox>
     </DockPanel>
 </Window>

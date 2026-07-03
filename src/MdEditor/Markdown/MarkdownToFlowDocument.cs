@@ -159,6 +159,7 @@ public static class MarkdownToFlowDocument
         {
             if (rowObj is not Markdig.Extensions.Tables.TableRow row) continue;
             var wpfRow = new TableRow();
+            if (row.IsHeader) wpfRow.Tag = "header"; // drives bold + the --- separator on save
             foreach (var cellObj in row)
             {
                 if (cellObj is not Markdig.Extensions.Tables.TableCell cell) continue;
