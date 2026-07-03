@@ -11,6 +11,7 @@
     "opener:default",
     "dialog:default",
     "fs:default",
+    "window-state:default",
     {
       "identifier": "fs:allow-read-text-file",
       "allow": [{ "path": "$APPCONFIG/**" }]

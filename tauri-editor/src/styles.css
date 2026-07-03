@@ -52,11 +52,17 @@ body {
 #toolbar .sep { width: 1px; height: 18px; background: #d5d5d5; margin: 0 4px; }
 
 /* Editor surface — the rendered document */
-#editor { flex: 1 1 auto; overflow-y: auto; }
+#editor {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  background: #f0f0f0; /* light grey gutter outside the page */
+}
 .ProseMirror {
   max-width: 820px;
   margin: 0 auto;
   padding: 28px 32px 120px;
+  min-height: 100%;
+  background: #ffffff; /* the writing "page" stays white */
   outline: none;
   font-size: 15px;
   line-height: 1.6;
@@ -152,6 +158,8 @@ body {
 
 @media (prefers-color-scheme: dark) {
   :root { color: #eaeaea; background: #1e1e1e; }
+  #editor { background: #171717; }
+  .ProseMirror { background: #1e1e1e; }
   #toolbar { background: #262626; border-color: #333; }
   #toolbar button:hover { background: #333; border-color: #444; }
   #toolbar .sep { background: #444; }
