@@ -37,6 +37,11 @@ public partial class MainWindow : Window
 
         ApplySettingsToEditor();
         RestoreWindowBounds();
+
+        // A persistent (initially empty) context menu, repopulated on each open.
+        // Assigning it here rather than per-open avoids a timing race where the
+        // freshly-assigned menu is not shown on the click that created it.
+        Editor.ContextMenu = new ContextMenu();
     }
 
     // ---- settings ----
@@ -404,20 +409,32 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// A right-click does not move the caret, so before the menu opens we move the
+    /// caret to the click point. That makes the spelling-suggestion and table
+    /// lookups (both keyed off the caret) reflect what the user actually clicked on.
+    /// </summary>
+    private void Editor_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var pos = Editor.GetPositionFromPoint(e.GetPosition(Editor), snapToText: true);
+        if (pos is not null)
+            Editor.CaretPosition = pos;
+    }
+
+    /// <summary>
     /// Builds the editor's right-click menu on demand so it can combine WPF's
     /// spelling suggestions and clipboard commands with the table operations. A
     /// static ContextMenu in XAML would suppress the built-in spellcheck menu, so
-    /// the menu is constructed fresh each time here.
+    /// the menu is constructed fresh each time here. The editor's ContextMenu is
+    /// assigned once in the constructor; here we only repopulate its items.
     /// </summary>
     private void Editor_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        var menu = new ContextMenu();
+        var menu = Editor.ContextMenu!;
+        menu.Items.Clear();
 
         AddSpellingSuggestions(menu);
         AddClipboardCommands(menu);
         AddTableCommands(menu);
-
-        Editor.ContextMenu = menu;
     }
 
     private void AddSpellingSuggestions(ContextMenu menu)

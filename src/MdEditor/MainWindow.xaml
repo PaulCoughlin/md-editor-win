@@ -73,6 +73,7 @@
                      FontSize="15"
                      TextChanged="Editor_TextChanged"
                      PreviewKeyDown="Editor_PreviewKeyDown"
+                     PreviewMouseRightButtonDown="Editor_PreviewMouseRightButtonDown"
                      ContextMenuOpening="Editor_ContextMenuOpening"/>
     </DockPanel>
 </Window>
