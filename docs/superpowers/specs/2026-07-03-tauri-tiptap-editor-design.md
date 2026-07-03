@@ -109,6 +109,15 @@ Boundaries match the WPF app: OS in Rust, document in TS, translation isolated.
   Windows app, permanently — solving the "every file picks up the same errors" pain.
   The native menu's own suggestions + session "Ignore" remain available; we add the
   persistent "Add to Dictionary" on top.
+
+  **Revised after testing (2026-07-03):** the native and custom menus cannot be
+  merged — the browser sandbox will not expose the OS suggestion list to JS, so a
+  custom menu can offer "Add to Dictionary" but no suggestions/Ignore. Suggestions are
+  the more valuable feature, so the app now shows the **native** spelling menu
+  everywhere (real suggestions + Ignore + the OS's own Add-to-dictionary, all free) and
+  only shows a custom menu **inside a table** (row/column/header ops). The custom
+  "Add to Dictionary" command and its Rust helper were removed as redundant — the
+  native menu already writes to the same OS dictionary.
 - Print → `window.print()` → native print dialog renders the document.
 - Preferences → persisted JSON in the Tauri app-config dir (same idea as
   `%APPDATA%\MdEditor\settings.json`). Font/size applied to the editor surface only.

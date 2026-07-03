@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import {
   BaseDirectory,
   readTextFile,
@@ -63,9 +62,4 @@ export function applySettings(editorRoot: HTMLElement, s: Settings): void {
     target.setAttribute("spellcheck", "true");
     target.setAttribute("lang", s.spellcheckLanguage);
   }
-}
-
-/** Adds a word to the Windows neutral custom dictionary via the Rust backend. */
-export async function addToDictionary(word: string): Promise<void> {
-  await invoke("add_to_dictionary", { word });
 }
