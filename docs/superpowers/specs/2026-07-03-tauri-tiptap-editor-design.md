@@ -118,6 +118,18 @@ Boundaries match the WPF app: OS in Rust, document in TS, translation isolated.
   only shows a custom menu **inside a table** (row/column/header ops). The custom
   "Add to Dictionary" command and its Rust helper were removed as redundant — the
   native menu already writes to the same OS dictionary.
+
+  **Corrected finding (2026-07-03, after user testing):** the assumption that the
+  native menu offers "Add to dictionary" was WRONG. WebView2 uses Chromium's
+  spellchecker, whose embedded context menu shows **suggestions + Ignore only — no
+  "Add to dictionary."** And wry (Tauri's webview layer) exposes only an all-or-nothing
+  `with_default_context_menus` toggle — it does NOT surface WebView2's
+  `ContextMenuRequested` event, so we cannot inject items into the native menu. Net:
+  you can have native *suggestions* OR a custom *Add to Dictionary*, but not both in
+  one right-click menu (the sandbox also hides the native suggestion list from JS).
+  **Decision: keep native suggestions** (the more valuable feature); permanent custom
+  words are added by hand-editing `%APPDATA%\Microsoft\Spelling\neutral\default.dic`.
+  A toolbar "add current word" button remains a possible future addition if wanted.
 - Print → `window.print()` → native print dialog renders the document.
 - Preferences → persisted JSON in the Tauri app-config dir (same idea as
   `%APPDATA%\MdEditor\settings.json`). Font/size applied to the editor surface only.
